@@ -3,11 +3,16 @@ const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
 server.on('connection', (socket) => {
-    console.log('Jugador conectado');
-
+    const playerId = "user_" + Math.random().toString(36).substring(2, 6);
+    console.log('Jugador conectado: ' + playerId);
+    
+    socket.send(JSON.stringify({
+        "cmd": "id_assigned",
+        "id": playerId
+    }));
+    
     socket.on('message', (data) => {
-        console.log(`Mensaje recibido: ${data}`);
-        // Reenviar el mensaje a todos los clientes conectados
+        // Reenvía el mensaje de movimiento a los demás
         server.clients.forEach(client => {
             if (client !== socket && client.readyState === WebSocket.OPEN) {
                 client.send(data);
