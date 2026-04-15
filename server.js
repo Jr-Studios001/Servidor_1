@@ -53,7 +53,22 @@ server.on('connection', (socket) => {
                     socket.send(JSON.stringify({ cmd: "room_joined", content: { room: roomToJoin, id: playerId } }));
                 }
                 break;
-
+                
+            case 'request_player_list':
+                const roomName = content.room;
+                if (rooms[roomName]) {
+                    const list = rooms[roomName]
+                        .filter(c => c.playerId !== socket.playerId) // Todos menos yo
+                        .map(c => ({ id: c.playerId }));
+                        
+                    socket.send(JSON.stringify({ 
+                        cmd: "spawn_network_players", 
+                        content: { players: list } 
+                    }));
+                    console.log(`Enviando lista de ${list.length} jugadores a ${socket.playerId}`);
+                }
+                break;
+                
             case 'update_position':
                 // Solo reenvía la posición a los jugadores en la MISMA sala
                 if (socket.room && rooms[socket.room]) {
