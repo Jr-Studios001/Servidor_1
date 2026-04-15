@@ -8,7 +8,25 @@ server.on('connection', (socket) => {
     const playerId = "user_" + Math.random().toString(36).substring(2, 6);
     socket.playerId = playerId;
     console.log(`Jugador conectado: ${playerId}`);
-
+    const activeRooms = Object.keys(rooms);
+    socket.send(JSON.stringify({
+        cmd: "update_room_list",
+        content: { rooms: activeRooms }
+            
+    function broadcastRooms() {
+        const activeRooms = Object.keys(rooms);
+        const message = JSON.stringify({
+            cmd: "update_room_list",
+            content: { rooms: activeRooms }
+        });
+    
+        server.clients.forEach(client => {
+            // Solo enviamos a los que están conectados pero no tienen sala aún
+            if (client.readyState === WebSocket.OPEN && !client.room) {
+                client.send(message);
+            }
+        });
+    }
     socket.on('message', (message) => {
         const data = JSON.parse(message);
         const { cmd, content } = data;
@@ -20,6 +38,8 @@ server.on('connection', (socket) => {
                 socket.room = newRoom;
                 socket.send(JSON.stringify({ cmd: "room_created", content: { room: newRoom, id: playerId } }));
                 console.log(`Sala creada: ${newRoom} por ${playerId}`);
+                rooms[newRoom] = [socket];
+                broadcastRooms();
                 break;
 
             case 'join_room':
