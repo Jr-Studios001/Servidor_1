@@ -4,6 +4,20 @@ const server = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
 const rooms = {};
 
+function broadcastRooms() {
+    const activeRooms = Object.keys(rooms);
+    const message = JSON.stringify({
+        cmd: "update_room_list",
+        content: { rooms: activeRooms }
+    });
+    
+    server.clients.forEach(client => {
+            // Solo enviamos a los que están conectados pero no tienen sala aún
+        if (client.readyState === WebSocket.OPEN && !client.room) {
+            client.send(message);
+        }
+    });
+}
 server.on('connection', (socket) => {
     const playerId = "user_" + Math.random().toString(36).substring(2, 6);
     socket.playerId = playerId;
@@ -13,20 +27,7 @@ server.on('connection', (socket) => {
         cmd: "update_room_list",
         content: { rooms: activeRooms }
             
-    function broadcastRooms() {
-        const activeRooms = Object.keys(rooms);
-        const message = JSON.stringify({
-            cmd: "update_room_list",
-            content: { rooms: activeRooms }
-        });
-    
-        server.clients.forEach(client => {
-            // Solo enviamos a los que están conectados pero no tienen sala aún
-            if (client.readyState === WebSocket.OPEN && !client.room) {
-                client.send(message);
-            }
-        });
-    }
+
     socket.on('message', (message) => {
         const data = JSON.parse(message);
         const { cmd, content } = data;
