@@ -25,23 +25,32 @@ server.on('connection', (socket) => {
             case 'join_room':
                 const roomToJoin = content.room_name;
                 if (rooms[roomToJoin]) {
-                    // 1. Avisar a los que ya estaban sobre el nuevo
-                    rooms[roomToJoin].forEach(client => {
-                        client.send(JSON.stringify({ 
-                            cmd: "spawn_new_player", 
-                            content: { player: { id: playerId } } 
-                        }));
+                    // 1. Obtener los IDs de todos los que ya están en la sala
+                    const existingPlayers = rooms[roomToJoin].map(client => {
+                        return { id: client.playerId };
                     });
             
-                    // 2. Avisar al NUEVO sobre todos los que ya estaban (incluyéndose a sí mismo)
-                    const currentPlayers = rooms[roomToJoin].map(c => ({ id: c.playerId }));
+                    // 2. Avisar al NUEVO usuario quiénes están ya en la sala
                     socket.send(JSON.stringify({ 
-                        cmd: "room_joined", 
-                        content: { room: roomToJoin, id: playerId, players: currentPlayers } 
+                        cmd: "spawn_network_players", 
+                        content: { players: existingPlayers } 
                     }));
             
+                    // 3. Avisar a los que YA ESTABAN que llegó uno nuevo
+                    rooms[roomToJoin].forEach(client => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ 
+                                cmd: "spawn_new_player", 
+                                content: { player: { id: playerId } } 
+                            }));
+                        }
+                    });
+            
+                    // 4. Agregar al nuevo a la lista de la sala
                     rooms[roomToJoin].push(socket);
                     socket.room = roomToJoin;
+                    
+                    socket.send(JSON.stringify({ cmd: "room_joined", content: { room: roomToJoin, id: playerId } }));
                 }
                 break;
 
