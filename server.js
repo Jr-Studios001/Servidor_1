@@ -24,19 +24,24 @@ server.on('connection', (socket) => {
 
             case 'join_room':
                 const roomToJoin = content.room_name;
+                console.log(`Intento de unión a sala: ${roomToJoin} por parte de: ${playerId}`); // <--- AGREGA ESTO
+            
                 if (rooms[roomToJoin]) {
                     rooms[roomToJoin].push(socket);
                     socket.room = roomToJoin;
                     
-                    // Avisar al que entra
+                    // Respuesta al que entra
                     socket.send(JSON.stringify({ cmd: "room_joined", content: { room: roomToJoin, id: playerId } }));
                     
-                    // Avisar a los que ya estaban en la sala que hay alguien nuevo
+                    // Avisar a los que YA ESTABAN en la sala que hay alguien nuevo
                     rooms[roomToJoin].forEach(client => {
                         if (client !== socket && client.readyState === WebSocket.OPEN) {
                             client.send(JSON.stringify({ cmd: "spawn_new_player", content: { player: { id: playerId } } }));
+                            console.log(`Avisando a ${client.playerId} que entró ${playerId}`);
                         }
                     });
+                } else {
+                    console.log(`La sala ${roomToJoin} no existe.`);
                 }
                 break;
 
